@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 import pyspark
 
 
-# In[2]:
+# In[ ]:
 
 
 from pyspark.sql import SparkSession
@@ -16,81 +16,81 @@ from pyspark.ml.regression import GBTRegressor
 from pyspark.ml.evaluation import RegressionEvaluator
 
 
-# In[3]:
+# In[ ]:
 
 
-sc.install_pypi_package("scikit-learn")
-from sklearn.metrics import classification_report, confusion_matrix
+# sc.install_pypi_package("scikit-learn")
+# from sklearn.metrics import classification_report, confusion_matrix
 
 
-# In[4]:
+# In[ ]:
 
 
 spark = SparkSession.builder.appName('WineApp').getOrCreate()
 
 
-# In[5]:
+# In[ ]:
 
 
 train_dataset= spark.read.format("com.databricks.spark.csv").csv(
-    's3://wineappcloud/TrainingDataset.csv', header=True, sep=";")
+    's3a://wineappcloud/TrainingDataset.csv', header=True, sep=";")
 train_dataset.printSchema()
 
 
-# In[6]:
+# In[ ]:
 
 
 validation_dataset= spark.read.format("com.databricks.spark.csv").csv(
-    's3://wineappcloud/ValidationDataset.csv', header=True, sep=";")
+    's3a://wineappcloud/ValidationDataset.csv', header=True, sep=";")
 validation_dataset.printSchema()
 
 
-# In[7]:
+# In[ ]:
 
 
 train_dataset.show()
 
 
-# In[8]:
+# In[ ]:
 
 
 
 validation_dataset.show()
 
 
-# In[9]:
+# In[ ]:
 
 
 train_dataset=train_dataset.distinct()
 validation_dataset=validation_dataset.distinct()
 
 
-# In[10]:
+# In[ ]:
 
 
 train_dataset.count()
 
 
-# In[11]:
+# In[ ]:
 
 
 validation_dataset.count()
 
 
-# In[12]:
+# In[ ]:
 
 
 total_columns = train_dataset.columns
 tot_columns=validation_dataset.columns
 
 
-# In[13]:
+# In[ ]:
 
 
 train_dataset.show()
 
 
-# In[14]:
+# In[ ]:
 
 
 from pyspark.sql.functions import col
@@ -100,13 +100,13 @@ train_dataset = preprocess(train_dataset)
 validation_dataset = preprocess(validation_dataset)
 
 
-# In[15]:
+# In[ ]:
 
 
 train_dataset.show()
 
 
-# In[16]:
+# In[ ]:
 
 
 validation_dataset.show()
@@ -159,12 +159,13 @@ for column_name in total_columns[:-1]:
 validation_dataset.show(5)
 
 
-# In[17]:
+# In[ ]:
 
 
 vectorAssembler = VectorAssembler(
-    inputCols=[column_name for column_name in total_columns[:-1]],
+    inputCols=[column_name+"_scaled" for column_name in total_columns[:-1]],
     outputCol='features')
+train_dataset.columns
 wine_train = vectorAssembler.transform(train_dataset)
 wine_valid = vectorAssembler.transform(validation_dataset)
 wine_data_train = wine_train.select(['features',total_columns[-1]]).cache()
@@ -193,21 +194,16 @@ gbt = GBTRegressor(featuresCol='features',
                     subsamplingRate=0.5,
                     stepSize=0.1)
 gbt_model = gbt.fit(wine_data_train)
-gbt_model.save("gbt_model.model")
 gbt_predictions = gbt_model.transform(wine_data_valid)
 gbt_predictions.select('prediction',total_columns[-1]).show(5)
+# gbt_model.save("gbt.model")
 
-
-# In[ ]:
-
+gbt_model.write().overwrite().save("s3a://wineappcloud/gbt.model")
 
 gbt_evaluator1= RegressionEvaluator(labelCol = total_columns[-1],
                                    predictionCol='prediction',
                                    metricName="rmse")
 rmse = gbt_evaluator1.evaluate(gbt_predictions)
-
-
-# In[ ]:
 
 
 gbt_evaluator2= RegressionEvaluator(labelCol = total_columns[-1],
@@ -216,15 +212,8 @@ gbt_evaluator2= RegressionEvaluator(labelCol = total_columns[-1],
 r2 = gbt_evaluator2.evaluate(gbt_predictions)
 
 
-# In[ ]:
-
-
 print("RMS=%g" % rmse)
 print("R squared = ",r2)
-
-
-# In[ ]:
-
 
 
 import pyspark.sql.functions as func
@@ -233,55 +222,28 @@ gbt_predictions = gbt_predictions.withColumn("prediction_with_round", func.round
 gbt_predictions.select(['prediction_with_round']).show(5)
 y_true = wine_data_valid.select([total_columns[-1]]).collect()
 y_pred = gbt_predictions.select(['prediction_with_round']).collect()
-print(classification_report(y_true, y_pred))
-
 
 # # RandomForestClassifier
-
-# In[28]:
-
-
 from pyspark.ml.classification import RandomForestClassifier
 from pyspark.ml import Pipeline
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 
-
-# In[19]:
-
-
 from pyspark.ml.feature import IndexToString, StringIndexer, VectorIndexer
-
-
-# In[20]:
-
 
 labelIndexer = StringIndexer(inputCol=total_columns[-1], outputCol="indexedLabel").fit(train_dataset)
 
 
-# In[21]:
-
-
 rf = RandomForestClassifier(labelCol='indexedLabel', featuresCol="features", numTrees=100)
-
-
-# In[22]:
-
 
 labelConverter = IndexToString(inputCol="prediction", outputCol="predictedLabel",
                                labels=labelIndexer.labels)
 
 
-# In[25]:
-
-
 pipeline = Pipeline(stages=[labelIndexer, vectorAssembler, rf, labelConverter])
 
 
-# In[29]:
-
-
 model = pipeline.fit(train_dataset)
-model.save("random_forest_classifier.model")
+model.write().overwrite().save("s3a://wineappcloud/RandomForestClassifier.model")
 # Make predictions.
 predictions = model.transform(validation_dataset)
 
@@ -296,24 +258,17 @@ print("Test Error = %g" % (1.0 - accuracy))
 
 rfModel = model.stages[2]
 print(rfModel)  # summary only
-
-
-# In[30]:
 
 
 print(accuracy)
 
 
 # # DecisionTreeClassifier
-
-# In[34]:
-
-
 from pyspark.ml.classification import DecisionTreeClassifier
 bt = DecisionTreeClassifier(labelCol="indexedLabel", featuresCol="features")
 pipeline = Pipeline(stages=[labelIndexer, vectorAssembler, bt, labelConverter])
 model = pipeline.fit(train_dataset)
-model.save("DecisionTreeClassifier.model")
+model.write().overwrite().save("s3a://wineappcloud/DecisionTreeClassifier.model")
 # Make predictions.
 predictions = model.transform(validation_dataset)
 
@@ -329,15 +284,5 @@ print("Test Error = %g" % (1.0 - accuracy))
 rfModel = model.stages[2]
 print(rfModel)  # summary only
 
-
-# In[35]:
-
-
 print(accuracy)
-
-
-# In[ ]:
-
-
-
 
