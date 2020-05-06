@@ -1,7 +1,7 @@
-#Notes 
+# Notes 
 1. Training, validation and trained model data were uploaded to S3 Bucket and it's url : s3://wineappcloud/ 
 
-#To Run Model Training on 4 Parallel EC2 Instances using EMR on AWS
+# To Run Model Training on 4 Parallel EC2 Instances using EMR on AWS
 1. Login to AWS Console and Create a IAM role for ec2 instance to give access to s3 so that ec2 instace can have access to download (CSV file) and upload files (Model file) to s3
 2. Create cluster using following steps
 	- In `Launch mode`, select `Step execution`
@@ -17,8 +17,8 @@ aws emr create-cluster --applications Name=Hadoop Name=Spark --ec2-attributes '{
 ```
 
 
-#To Run Model Prediction on single EC2 Instance without Docker
-###Assumptions 
+# To Run Model Prediction on single EC2 Instance without Docker
+### Assumptions 
 - Ec2 instance is created
 - It has spark installed on it
 1. Copy the wine_prediction_final.py (https://github.com/nikisha12345/WineApp/blob/master/wine_prediction_final.py) file to the Ec2 instance 
@@ -28,8 +28,8 @@ aws emr create-cluster --applications Name=Hadoop Name=Spark --ec2-attributes '{
 - Example of using local file as argument
 `spark-submit --packages org.apache.hadoop:hadoop-aws:2.7.7 wine_prediction_final.py --test_file ValidationDataset.csv` (Here ValidationDataset.csv should be in your Ec2 instance)
 
-#To Run Model Prediction on single EC2 Instance with Docker
-###Assumptions
+# To Run Model Prediction on single EC2 Instance with Docker
+### Assumptions
 - Ec2 instance is created
 - It has docker installed on it
 1. `ssh into your Ec2 instance` 
