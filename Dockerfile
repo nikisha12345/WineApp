@@ -27,3 +27,5 @@ RUN /bin/bash -c "source ~/.bashrc"
 RUN /bin/sh -c "source ~/.bashrc"
 
 WORKDIR /wineapp
+
+ENTRYPOINT ["/opt/spark/bin/spark-submit", "--packages", "org.apache.hadoop:hadoop-aws:2.7.7", "wine_prediction_final.py"]
