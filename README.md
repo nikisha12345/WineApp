@@ -1,5 +1,5 @@
 # Notes 
-1. Training, validation and trained model data were uploaded to S3 Bucket and it's url : s3://wineappcloud/ 
+1. Training, validation and trained model data were uploaded to S3 Bucket and it's url : `s3://wineappcloud/` 
 
 # To Run Model Training on 4 Parallel EC2 Instances using EMR on AWS
 1. Login to AWS Console and Create a IAM role for ec2 instance to give access to s3 so that ec2 instace can have access to download (CSV file) and upload files (Model file) to s3
