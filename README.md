@@ -21,7 +21,7 @@ aws emr create-cluster --applications Name=Hadoop Name=Spark --ec2-attributes '{
 ### Assumptions 
 - Ec2 instance is created
 - It has spark installed on it
-1. Copy the wine_prediction_final.py (https://github.com/nikisha12345/WineApp/blob/master/wine_prediction_final.py) file to the Ec2 instance 
+1. Copy the wine_prediction_final.py (https://github.com/nikisha12345/WineApp/blob/master/wine_prediction_final.py) file to the Ec2 instance (scp -i <"your .pem file"> wine_prediction_final.py <Ec2 instance ID>:~/wine_prediction_final.py)
 2. Run the following command in Ec2 instance to start the model prediction : 
 - Example of using S3 file as argument 
 `spark-submit --packages org.apache.hadoop:hadoop-aws:2.7.7 wine_prediction_final.py --test_file s3a://wineappcloud/ValidationDataset.csv` (Here you can pass S3 link of the test.data just like this)
